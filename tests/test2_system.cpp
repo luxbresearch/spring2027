@@ -18,9 +18,7 @@ Relation r2("ex2", "d", SEQ(P(b) * P(a)), {"b", "a"});
 System sys({a, b, c, d});
 
 int main() {
-    cout << "Setting values ...";
-    sys.setVal("b", 2);
-    sys.setVal("c", 4);
+    sys.setManual({"b", "c"});
     cout << "done, solving ..." << endl;
     sys.solveAll({r1, r2});
     cout << "done: " << endl;
