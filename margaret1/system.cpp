@@ -1,6 +1,7 @@
 #include "system.h"
 #include "err.h"
 #include <iostream>
+#include <cmath>
 
 // --- Implementation for margaret1::Property class --- //
 //
@@ -42,6 +43,7 @@ bool margaret1::Property::hasName(std::string name) {
 //      bool isSolvable(Relation relation);             (tested)
 //      void solve(Relation relation);                  (tested)
 //      void solveAll(std::vector<Relation> relations); (tested)
+//      void evolve(Evolution evolution, double evoStep, double evoTime);
 //      double getVal(std::string name);                (tested)
 //      void setVal(std::string name, double newVal);   (tested)
 //      void setUnknown(std::string name);              (tested)
@@ -52,8 +54,8 @@ bool margaret1::System::isKnown(std::string requirement) {
     return false; // to appease the compiler so that control doesn't reach end of non-void func
 }
 
-bool margaret1::System::isSolvable(margaret1::Relation relation) {
-    for (std::string requirement: relation.requires) if (!isKnown(requirement)) return false;
+bool margaret1::System::isSolvable(margaret1::Relation* relation) {
+    for (std::string requirement: relation->requires) if (!isKnown(requirement)) return false;
     return true;
 }
 
@@ -69,7 +71,7 @@ void margaret1::System::solveAll(std::vector<margaret1::Relation> relations) {
     while (true) {
 
         for (margaret1::Relation relation: relations) {
-            if (isSolvable(relation)) {
+            if (isSolvable(&relation)) {
                 for (std::string name: alreadySolved) if (relation.name == name) {isAlreadySolved = true; break; }
                 if (isAlreadySolved) continue;
 
@@ -91,6 +93,42 @@ void margaret1::System::solveAll(std::vector<margaret1::Relation> relations) {
         // the number of solves and keep going
         else previousSolveCount = solveCount;
         
+    }
+}
+
+void margaret1::System::evolve(margaret1::Evolution evolution, double evoStep, double evoTime) {
+    int steps = (int)(evoTime / evoStep);
+    std::vector<std::string> updateNames;
+    std::vector<double> updateValues;
+
+    for (margaret1::TimeDerivRelation tdr: evolution.derivatives) {
+        updateNames.push_back(tdr.solves);
+        updateValues.push_back(0);
+    }
+
+    for (int step = 0; step < steps; step++) {
+        // Figure out the time derivatives as specified in
+        // the evolution object, and add the dx/dt dt 
+        // elements to their respective properties.
+
+        for (margaret1::TimeDerivRelation tdr: evolution.derivatives) {
+            if (!isSolvable(&tdr)) margaret1::margaretError("a margaret1 System", "Cannot solve evolution derivative", "Add more information before evolution attempt");
+            for (int index = 0; index < updateNames.size(); index++) {
+                if (updateNames[index] == tdr.solves) {
+                    updateValues[index] = tdr.relation(this) * std::pow(evoStep, tdr.order) / (std::tgamma(tdr.order + 1));
+                }
+            }
+        }
+
+        for (int index = 0; index < updateNames.size(); index++) {
+            setVal(updateNames[index], getVal(updateNames[index]) + updateValues[index]);
+        }
+
+        // Solve all of the associated relations to update
+        // other system properties
+        for (margaret1::Relation relation: evolution.associated) {
+            solve(relation);
+        }
     }
 }
 

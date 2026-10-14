@@ -27,7 +27,7 @@ namespace margaret1 {
 
     };
 
-    class System; // forward-declare to make this work right
+    class System;
     class Relation {
 
         public:
@@ -41,6 +41,33 @@ namespace margaret1 {
 
     };
 
+    class TimeDerivRelation: public Relation {
+
+        public:
+
+            TimeDerivRelation(std::string name, std::string solves, std::function<double(System*)> relation, std::vector<std::string> requires, int order):
+                Relation(name, solves, relation, requires), order(order) {}
+
+            int order;
+            std::string name;
+            std::function<double(System*)> relation;
+            std::string solves;
+            std::vector<std::string> requires;
+
+    };
+
+    class Evolution {
+
+        public:
+
+            Evolution(std::string name, std::vector<TimeDerivRelation> derivatives, std::vector<Relation> associated): name(name), derivatives(derivatives), associated(associated) {}
+
+            std::string name;
+            std::vector<TimeDerivRelation> derivatives;
+            std::vector<Relation> associated;
+
+    };
+
     class System {
 
         public:
@@ -50,9 +77,10 @@ namespace margaret1 {
             System(std::vector<Property> props): properties(props) {}
 
             bool isKnown(std::string requirement);
-            bool isSolvable(Relation relation);
+            bool isSolvable(Relation* relationptr);
             void solve(Relation relation);
             void solveAll(std::vector<Relation> relations);
+            void evolve(Evolution evolution, double evoStep, double evoTime);
             double getVal(std::string name);
             void setVal(std::string name, double newVal);
             void setUnknown(std::string name);
