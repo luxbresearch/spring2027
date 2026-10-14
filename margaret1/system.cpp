@@ -59,12 +59,12 @@ double margaret1::Relation::suppose(std::vector<std::pair<std::string, double>> 
 // --- Implementation for margaret1::EvolutionRecord class --- //
 //
 // Methods:
-//      std::vector<double> series(std::string name)                (written)
-//      int closestStepForward(double time);                        (written)
-//      int closestStepBackward(double time);                       (written)
-//      double deriv(std::string name, double time);                (written)
-//      double deriv2(std::string name, double time);               (written)
-//      double getVal(std::string name, double time);               (written)
+//      std::vector<double> series(std::string name)                (test!)
+//      int closestStepForward(double time);                        (test!)
+//      int closestStepBackward(double time);                       (test!)
+//      double deriv(std::string name, double time);                (test!)
+//      double deriv2(std::string name, double time);               (test!)
+//      double getVal(std::string name, double time);               (test!)
 
 std::vector<double> margaret1::EvolutionRecord::series(std::string name) {
     for (int index = 0; index < variableNames.size(); index++) if (variableNames[index] == name) return variableSeries[index];
@@ -134,7 +134,7 @@ double margaret1::EvolutionRecord::getVal(std::string name, double time) {
 //      bool isSolvable(Relation relation);                                 (tested)
 //      void solve(Relation relation);                                      (tested)
 //      void solveAll(std::vector<Relation> relations);                     (tested)
-//      void evolve(Evolution evolution, double evoStep, double evoTime);   (written)
+//      void evolve(Evolution evolution, double evoStep, double evoTime);   (test!)
 //      double getVal(std::string name);                                    (tested)
 //      void setVal(std::string name, double newVal);                       (tested)
 //      void setUnknown(std::string name);                                  (tested)

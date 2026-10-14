@@ -49,8 +49,25 @@ namespace margaret1 {
 
         public:
 
-            std::vector<std::string> properties;
-            std::vector<double> exponent;
+            Law(std::string name, std::vector<std::pair<std::string, double>> pairs): name(name), pairs(pairs) {
+                for (std::pair<std::string, double> p: pairs) {
+                    allProperties.push_back(p.first);
+                }
+            }
+
+            std::vector<std::string> allProperties;
+            std::string name;
+            std::vector<std::pair<std::string, double>> pairs;
+
+            bool relates(std::string prop);                 // does that property show up here?
+
+            double exponent(std::string prop);              // what's the exponent of that property in
+                                                            // the statement of the law?
+
+            Relation deriveRelationFor(std::string prop);   // derive a Relation object that solves for
+                                                            // the given Property
+
+            std::vector<Relation> allDerivedRelations();    // derive all Relations and return them together
 
     };
 
