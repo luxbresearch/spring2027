@@ -184,6 +184,11 @@ namespace margaret1 {
             double deriv2(std::string name, double time);   // get the approximate second time derivative
                                                             // of the given variable at the given time
 
+            bool exportCSV(std::string filename);           // export the data to a CSV file; true if it works
+
+            bool exportPRN(std::string filename);           // export the data to a PRN (.dat) file; true
+                                                            // if it works
+
     };
 
     // --- margaret1::System --- //

@@ -3,6 +3,8 @@
 #include <iostream>
 #include <cmath>
 #include <algorithm>
+#include <fstream>
+#include <iomanip>
 
 // --- Implementation for margaret1::Property class --- //
 //
@@ -59,12 +61,14 @@ double margaret1::Relation::suppose(std::vector<std::pair<std::string, double>> 
 // --- Implementation for margaret1::EvolutionRecord class --- //
 //
 // Methods:
-//      std::vector<double> series(std::string name)                (test!)
-//      int closestStepForward(double time);                        (test!)
-//      int closestStepBackward(double time);                       (test!)
-//      double deriv(std::string name, double time);                (test!)
-//      double deriv2(std::string name, double time);               (test!)
-//      double getVal(std::string name, double time);               (test!)
+//      std::vector<double> series(std::string name)                (tested)
+//      int closestStepForward(double time);                        (tested)
+//      int closestStepBackward(double time);                       (tested)
+//      double deriv(std::string name, double time);                (tested)
+//      double deriv2(std::string name, double time);               (tested)
+//      double getVal(std::string name, double time);               (tested)
+//      void exportCSV(std::string filename)                        (write!)
+//      void exportPRN(std::string filename)                        (write!)
 
 std::vector<double> margaret1::EvolutionRecord::series(std::string name) {
     for (int index = 0; index < variableNames.size(); index++) if (variableNames[index] == name) return variableSeries[index];
@@ -102,7 +106,7 @@ double margaret1::EvolutionRecord::deriv2(std::string name, double time) {
     return 2 * ((s[x+1] - s[x]) / rightStep - (s[x] - s[x-1]) / leftStep) / (leftStep + rightStep);
 }
 
-double margaret1::EvolutionRecord::getVal(std::string name, double time, bool doNotInterpolate=false) {
+double margaret1::EvolutionRecord::getVal(std::string name, double time, bool doNotInterpolate) {
     std::vector<double> s = series(name);
     int lower = closestStepBackward(time);
 
@@ -131,6 +135,54 @@ double margaret1::EvolutionRecord::getVal(std::string name, double time, bool do
         result += weight * s[i];
     }
     return result;
+}
+
+bool margaret1::EvolutionRecord::exportCSV(std::string filename) {
+    std::ofstream csv;
+    csv.open(filename);
+
+    if (!csv.is_open()) return false;
+
+    csv << "t,";
+    for (int i = 0; i < variableNames.size(); i++) {
+        csv << variableNames[i];
+        if (i != variableNames.size() - 1) csv << ",";
+    }
+    csv << std::endl << std::fixed << std::setprecision(5);
+
+    for (int i = 0; i < timeDomain.size(); i++) {
+        csv << timeDomain[i] << ",";
+        for (int j = 0; j < variableNames.size(); j++) {
+            csv << variableSeries[j][i];
+            if (j != variableNames.size() - 1) csv << ",";
+        }
+        csv << std::endl;
+    }
+
+    return true; 
+}
+
+bool margaret1::EvolutionRecord::exportPRN(std::string filename) {
+    std::ofstream prn;
+    prn.open(filename);
+
+    if (!prn.is_open()) return false;
+
+    prn << "t\t\t";
+    for (int i = 0; i < variableNames.size(); i++) {
+        prn << variableNames[i] << "\t\t";
+    }
+    prn << std::endl << std::fixed << std::setprecision(5);
+
+    for (int i = 0; i < timeDomain.size(); i++) {
+        prn << timeDomain[i] << "\t\t";
+        for (int j = 0; j < variableNames.size(); j++) {
+            prn << variableSeries[j][i] << "\t\t";
+        }
+        prn << std::endl;
+    }
+
+    return true;
 }
 
 // --- Implementation for margaret1::System class --- //

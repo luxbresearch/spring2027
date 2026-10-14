@@ -21,4 +21,6 @@ int main() {
     for (double t = 0; t < 0.5; t += 0.005) {
         cout << "t=" << t << "\ta=" << rec.getVal("a", t) << "\tb=" << rec.getVal("b", t) << "\tc=" << rec.getVal("c", t) << "\td=" << rec.getVal("d", t) << endl;
     }
+    rec.exportCSV("test.csv");
+    rec.exportPRN("test.prn");
 }
