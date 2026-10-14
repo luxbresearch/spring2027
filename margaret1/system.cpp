@@ -1,8 +1,14 @@
 #include "system.h"
 #include "err.h"
+#include <iostream>
 
-#define SEQ(x) [](margaret1::System sys) { return x; }
-#define P(x) sys.getVal(#x)
+// --- Implementation for margaret1::Property class --- //
+//
+// Methods:
+//      double getVal();                (tested)
+//      void setVal(double newVal);     (tested)
+//      void setUnknown();              (tested)
+//      bool hasName(std::string name); (tested)
 
 double margaret1::Property::getVal() {
     if (!known) {
@@ -29,20 +35,77 @@ bool margaret1::Property::hasName(std::string name) {
     return false;
 }
 
-bool margaret1::Relation::isSolvable(margaret1::System system) {
-    for (std::string requirement: requires) {
-        if (!(system.isKnown(requirement))) {
-            return false;
-        }
-    }
+// --- Implementation for margaret1::System class --- //
+//
+// Methods:
+//      bool isKnown(std::string requirement);          (tested)
+//      bool isSolvable(Relation relation);             (tested)
+//      void solve(Relation relation);                  (tested)
+//      void solveAll(std::vector<Relation> relations); (tested)
+//      double getVal(std::string name);                (tested)
+//      void setVal(std::string name, double newVal);   (tested)
+//      void setUnknown(std::string name);              (tested)
+
+bool margaret1::System::isKnown(std::string requirement) {
+    for (Property prop: properties) if (prop.hasName(requirement)) return prop.known;
+    margaret1::margaretError("a margaret1 System", "No such property with name for isKnown: " + requirement, "Check requirement name.");
+    return false; // to appease the compiler so that control doesn't reach end of non-void func
+}
+
+bool margaret1::System::isSolvable(margaret1::Relation relation) {
+    for (std::string requirement: relation.requires) if (!isKnown(requirement)) return false;
     return true;
 }
 
-double margaret1::Relation::solveFor(margaret1::System system) {
-    if (!isSolvable(system)) {
-        margaret1::margaretError("a margaret1 Relation", "Not enough information to solve relation: " + name, "Check with isSolvable before attempting.");
-    }
-    return relation(system);
+void margaret1::System::solve(margaret1::Relation relation) {
+    setVal(relation.solves, relation.relation(this));
 }
 
-void margaret1::Relation::solve(margaret1::System )
+void margaret1::System::solveAll(std::vector<margaret1::Relation> relations) {
+    std::vector<std::string> alreadySolved;
+    int solveCount = 0;
+    int previousSolveCount = 0;
+    bool isAlreadySolved = false;
+    while (true) {
+
+        for (margaret1::Relation relation: relations) {
+            if (isSolvable(relation)) {
+                for (std::string name: alreadySolved) if (relation.name == name) {isAlreadySolved = true; break; }
+                if (isAlreadySolved) continue;
+
+                solve(relation);
+                alreadySolved.push_back(relation.name);
+                solveCount++;
+            }
+        }
+
+        // No new relations were solved in this loop
+        // and as such the same trivial result will be
+        // had in the next one. We've done all the work
+        // we can do with the given information.
+        if (previousSolveCount == solveCount) break;
+
+        // At least one relation was solved and there's
+        // a chance we could solve another one on the
+        // next go-around with new information, so update
+        // the number of solves and keep going
+        else previousSolveCount = solveCount;
+        
+    }
+}
+
+double margaret1::System::getVal(std::string name) {
+    for (Property prop: properties) if (prop.hasName(name)) return prop.getVal();
+    margaret1::margaretError("a margaret1 System", "No such property with name for getVal: " + name, "Check target property name.");
+    return 0.0; // to appease the compiler so that control doesn't reach end of non-void func
+}
+
+void margaret1::System::setVal(std::string name, double newVal) {
+    for (Property& prop: properties) if (prop.hasName(name)) { prop.setVal(newVal); return; }
+    margaret1::margaretError("a margaret1 System", "No such property with name for setVal: " + name, "Check target property name.");
+}
+
+void margaret1::System::setUnknown(std::string name) {
+    for (Property& prop: properties) if (prop.hasName(name)) { prop.setUnknown(); return; }
+    margaret1::margaretError("a margaret1 System", "No such property with name for setUnknown: " + name, "Check target property name.");
+}
