@@ -39,20 +39,20 @@ margaret1::Relation margaret1::Law::deriveRelationFor(std::string prop) {
 
     std::vector<std::string> requires;
     for (std::string possibleRequire: allProperties) if (prop != possibleRequire) requires.push_back(possibleRequire);
+    std::vector<double> requiredExponents;
+    for (std::string require: requires) requiredExponents.push_back(exponent(require));
 
-    // In general, if everything else in the law is Y and our
-    // target property is x, so the law is 1 = x^k * Y, the
-    // resultant relation for x is obviously x = Y^k (since 
-    // the derivation goes x^-k = Y to start). Build and return
+    // In general, if everything else in the law is y and our
+    // target property is x, so the law is 1 = x^k * y, the
+    // resultant relation for x is obviously x = y^k (since 
+    // the derivation goes x^-k = y to start). Build and return
     // a lambda function that gives us that Relation.
 
     double k = exponent(prop);
 
-    auto func = [k, requires](margaret1::System* sysptr) {
+    auto func = [k, requires, requiredExponents](margaret1::System* sysptr) {
         double prod = 1.0;
-        for (std::string requirement: requires) {
-            prod *= sysptr->getVal(requirement);
-        }
+        for (int i = 0; i < requires.size(); i++) prod *= sysptr->getVal(std::pow(requires[i], requiredExponents[i]));
         return std::pow(prod, k);
     };
 
