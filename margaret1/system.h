@@ -1,7 +1,14 @@
+// system.h
+//
+// This header contains all the definitions for the primary
+// mechanisms of Margaret 1, the System class and the related
+// Relation and Evolution classes that work with it.
+
 #pragma once
 
 #include <vector>
 #include <functional>
+#include <utility>
 #include <string>
 #include "err.h"
 
@@ -27,6 +34,7 @@ namespace margaret1 {
             double value;
             std::vector<std::string> names;
 
+            Property() {}
             Property(std::vector<std::string> names): names(names) {}
 
             double getVal();                // Get the value and error if it is unknown
@@ -67,6 +75,8 @@ namespace margaret1 {
             std::function<double(System*)> relation;
             std::string solves;
             std::vector<std::string> requires;
+
+            double suppose(std::vector<std::pair<std::string, double>> values);   // run a calculation using given values
 
     };
 

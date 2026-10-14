@@ -37,6 +37,25 @@ bool margaret1::Property::hasName(std::string name) {
     return false;
 }
 
+// --- Implementation for margaret1::Relation class --- //
+//
+// Methods:
+//      double suppose(std::vector<std::pair<std::string, double>> values)  (written)
+
+double margaret1::Relation::suppose(std::vector<std::pair<std::string, double>> values) {
+    std::vector<margaret1::Property> props;
+    margaret1::Property prop;
+    for (std::pair<std::string, double> p: values) {
+        prop = margaret1::Property({p.first});
+        prop.setVal(p.second);
+        props.push_back(prop);
+    }
+    props.push_back(margaret1::Property({solves}));
+    System* test = new System(props);
+    test->solve(*this);
+    return test->getVal(solves);
+}
+
 // --- Implementation for margaret1::EvolutionRecord class --- //
 //
 // Methods:
