@@ -173,8 +173,10 @@ namespace margaret1 {
                                                             // timestep nearest the given time, rounding
                                                             // down to nearest timestep
 
-            double getVal(std::string name, double time);   // directly get or interpolate the value of
-                                                            // the given variable at the given time
+            double getVal(std::string name, double time, bool doNotInterpolate=false);   
+                                                            // directly get or interpolate the value of
+                                                            // the given variable at the given time; default
+                                                            // to interpolating with a quadratic
 
             double deriv(std::string name, double time);    // get the approximate first time derivative
                                                             // of the given variable at the given time

@@ -2,7 +2,7 @@
 #include "err.h"
 #include <iostream>
 #include <cmath>
-#include <cassert>
+#include <algorithm>
 
 // --- Implementation for margaret1::Property class --- //
 //
@@ -73,58 +73,64 @@ std::vector<double> margaret1::EvolutionRecord::series(std::string name) {
 }
 
 int margaret1::EvolutionRecord::closestStepForward(double time) {
-    if (time < 0 || time > timeDomain[timeDomain.size() - 1]) margaret1::margaretError("a margaret1 EvolutionRecord", "Selected time is out of range for closestStepForward.", "Check the time domain of the EvolutionRecord and your requested input");
+    if (timeDomain.empty() || time < timeDomain.front() || time > timeDomain.back()) margaret1::margaretError("a margaret1 EvolutionRecord", "Selected time is out of range for closestStepForward.", "Check the time domain of the EvolutionRecord and your requested input");
     
-    int res;
-    for (int index = 0; index < timeDomain.size(); index++) if (timeDomain[index] >= time) { res = index; break; }
-    assert(timeDomain[res] >= time);
-    return res;
-
-    margaret1::margaretError("a margaret1 EvolutionRecord", "Unknown error in closestStepForward", "Check the time domain of the EvolutionRecord and your requested input.");
-    return -1;
+    return static_cast<int>(std::lower_bound(timeDomain.begin(), timeDomain.end(), time) - timeDomain.begin());
 }
 
 int margaret1::EvolutionRecord::closestStepBackward(double time) {
-    if (time < 0 || time > timeDomain[timeDomain.size() - 1]) margaret1::margaretError("a margaret1 EvolutionRecord", "Selected time is out of range for closestStepBackward.", "Check the time domain of the EvolutionRecord and your requested input");
+    if (timeDomain.empty() || time < timeDomain.front() || time > timeDomain.back()) margaret1::margaretError("a margaret1 EvolutionRecord", "Selected time is out of range for closestStepBackward.", "Check the time domain of the EvolutionRecord and your requested input");
 
-    int res;
-    for (int index = 0; index < timeDomain.size(); index++) if (timeDomain[index] >= time) { res = index; break; }
-    assert(timeDomain[res] >= time);
-    return res;
-
-    margaret1::margaretError("a margaret1 EvolutionRecord", "Unknown error in closestStepBackward", "Check the time domain of the EvolutionRecord and your requested input.");
-    return -1;
+    return static_cast<int>(std::upper_bound(timeDomain.begin(), timeDomain.end(), time) - timeDomain.begin()) - 1;
 }
 
 double margaret1::EvolutionRecord::deriv(std::string name, double time) {
     std::vector<double> s = series(name);
+    if (s.size() < 2) margaret1::margaretError("a margaret1 EvolutionRecord", "Cannot calculate a derivative with fewer than two data points.", "Record at least two time points.");
     int x = closestStepBackward(time);
-    return (s[x+1] - s[x]) / stepSize; // f'(x) is approx (f(x+h) - f(x)) / h, accuracy O(h)
+    if (x == static_cast<int>(s.size()) - 1) x--;
+    return (s[x+1] - s[x]) / (timeDomain[x+1] - timeDomain[x]);
 }
 
 double margaret1::EvolutionRecord::deriv2(std::string name, double time) {
     std::vector<double> s = series(name);
+    if (s.size() < 3) margaret1::margaretError("a margaret1 EvolutionRecord", "Cannot calculate a second derivative with fewer than three data points.", "Record at least three time points.");
     int x = closestStepBackward(time);
-    return (s[x+1] - (2 * s[x]) + s[x-1]) / (stepSize * stepSize); // f''(x) is approx (f(x+h) - 2f(x) + f(x-h)) / h^2, accuracy O(h^2)
+    x = std::max(1, std::min(x, static_cast<int>(s.size()) - 2));
+    double leftStep = timeDomain[x] - timeDomain[x-1];
+    double rightStep = timeDomain[x+1] - timeDomain[x];
+    return 2 * ((s[x+1] - s[x]) / rightStep - (s[x] - s[x-1]) / leftStep) / (leftStep + rightStep);
 }
 
-double margaret1::EvolutionRecord::getVal(std::string name, double time) {
-    int anchor = closestStepBackward(time);
+double margaret1::EvolutionRecord::getVal(std::string name, double time, bool doNotInterpolate=false) {
     std::vector<double> s = series(name);
+    int lower = closestStepBackward(time);
 
-    // If the selected time is actually a data point in the time
-    // domain, just return the value directly to save some compute
-    if (timeDomain[anchor] == time) return s[anchor];
+    // If no interpolation is requested just return the nearest
+    // data point that's available (default to rounding down)
+    if (doNotInterpolate) {
+        return s[lower];
+    }
 
-    // Otherwise, calculate dt and do a quadratic approximation
-    double deltaT = time - timeDomain[anchor];
+    if (timeDomain[lower] == time || lower == static_cast<int>(s.size()) - 1) return s[lower];
 
-    // We skip out on deriv() and deriv2() here since they go get
-    // the series again, and we already have that information locally
-    double d1 = (s[anchor+1] - s[anchor]) / stepSize,
-        d2 = (s[anchor+1] - (2 * s[anchor]) + s[anchor-1]) / (stepSize * stepSize);
-    
-    return s[anchor] + (d1 * deltaT) + ((d2 * deltaT * deltaT) / 2); // quadratic approximation with first and second derivatives
+    if (s.size() == 1) return s[0];
+
+    if (s.size() == 2) {
+        double fraction = (time - timeDomain[lower]) / (timeDomain[lower + 1] - timeDomain[lower]);
+        return s[lower] + fraction * (s[lower + 1] - s[lower]);
+    }
+
+    int first = std::max(0, std::min(lower - 1, static_cast<int>(s.size()) - 3));
+    double result = 0;
+    for (int i = first; i < first + 3; i++) {
+        double weight = 1;
+        for (int j = first; j < first + 3; j++) {
+            if (i != j) weight *= (time - timeDomain[j]) / (timeDomain[i] - timeDomain[j]);
+        }
+        result += weight * s[i];
+    }
+    return result;
 }
 
 // --- Implementation for margaret1::System class --- //
@@ -134,7 +140,7 @@ double margaret1::EvolutionRecord::getVal(std::string name, double time) {
 //      bool isSolvable(Relation relation);                                 (tested)
 //      void solve(Relation relation);                                      (tested)
 //      void solveAll(std::vector<Relation> relations);                     (tested)
-//      void evolve(Evolution evolution, double evoStep, double evoTime);   (test!)
+//      void evolve(Evolution evolution, double evoStep, double evoTime);   (tested)
 //      double getVal(std::string name);                                    (tested)
 //      void setVal(std::string name, double newVal);                       (tested)
 //      void setUnknown(std::string name);                                  (tested)
@@ -190,24 +196,62 @@ void margaret1::System::solveAll(std::vector<margaret1::Relation> relations) {
 
 margaret1::EvolutionRecord margaret1::System::evolve(margaret1::Evolution evolution, double evoStep, double evoTime, std::vector<std::string> record) {
     std::cout << "[System] Starting system evolution ..." << std::endl << "\tSetting up ..."; std::cout.flush();
+    if (!std::isfinite(evoStep) || evoStep <= 0 || !std::isfinite(evoTime) || evoTime < 0) {
+        margaret1::margaretError("a margaret1 System", "Invalid evolution time or step size.", "Use a positive finite step size and a non-negative finite evolution time.");
+    }
     int steps = (int)(evoTime / evoStep);
     std::vector<std::string> updateNames;
     std::vector<double> updateValues;
     margaret1::EvolutionRecord evoRecord;
     double currentTime = 0.0;
+    std::vector<margaret1::Relation> orderedRelations;
+    std::vector<bool> relationPending(evolution.associated.size(), true);
+
+    while (orderedRelations.size() < evolution.associated.size()) {
+        bool madeProgress = false;
+        for (int i = 0; i < evolution.associated.size(); i++) {
+            if (!relationPending[i]) continue;
+            bool hasPendingRequirement = false;
+            for (int j = 0; j < evolution.associated.size(); j++) {
+                if (i == j || !relationPending[j]) continue;
+                for (std::string requirement: evolution.associated[i].requires) {
+                    if (requirement == evolution.associated[j].solves) {
+                        hasPendingRequirement = true;
+                        break;
+                    }
+                }
+                if (hasPendingRequirement) break;
+            }
+            if (!hasPendingRequirement) {
+                orderedRelations.push_back(evolution.associated[i]);
+                relationPending[i] = false;
+                madeProgress = true;
+            }
+        }
+        if (!madeProgress) {
+            margaret1::margaretError("a margaret1 System", "Associated evolution relations contain a dependency cycle.", "Remove the cycle between the properties they solve.");
+        }
+    }
 
     evoRecord.filled = (record.size() != 0);
 
     // Setup: get all the updating variables' names in place
     for (margaret1::TimeDerivRelation tdr: evolution.derivatives) {
-        updateNames.push_back(tdr.solves);
-        updateValues.push_back(0);
+        if (std::find(updateNames.begin(), updateNames.end(), tdr.solves) == updateNames.end()) {
+            updateNames.push_back(tdr.solves);
+            updateValues.push_back(0);
+        }
+    }
+
+    for (margaret1::Relation relation: orderedRelations) {
+        if (!isSolvable(&relation)) margaret1::margaretError("a margaret1 System", "Cannot solve associated evolution relation", "Set its required properties before evolution.");
+        solve(relation);
     }
 
     if (record.size() != 0) {
         // Setup: get all the recording variables' names and series in place
         // and set up the EvolutionRecord's other data
-        evoRecord.maxTime = evoTime; evoRecord.stepSize = evoStep;
+        evoRecord.maxTime = steps * evoStep; evoRecord.stepSize = evoStep;
         for (std::string name: record) {
             evoRecord.variableNames.push_back(name); // add the name to the list
             evoRecord.variableSeries.push_back(std::vector<double>({})); // add the empty series to the list
@@ -231,11 +275,12 @@ margaret1::EvolutionRecord margaret1::System::evolve(margaret1::Evolution evolut
         // the evolution object, and add the dx/dt dt 
         // elements to their respective properties.
 
+        std::fill(updateValues.begin(), updateValues.end(), 0);
         for (margaret1::TimeDerivRelation tdr: evolution.derivatives) {
             if (!isSolvable(&tdr)) margaret1::margaretError("a margaret1 System", "Cannot solve evolution derivative", "Add more information before evolution attempt");
             for (int index = 0; index < updateNames.size(); index++) {
                 if (updateNames[index] == tdr.solves) {
-                    updateValues[index] = tdr.relation(this) * std::pow(evoStep, tdr.order) / (std::tgamma(tdr.order + 1));
+                    updateValues[index] += tdr.relation(this) * std::pow(evoStep, tdr.order) / (std::tgamma(tdr.order + 1));
                 }
             }
         }
@@ -246,7 +291,7 @@ margaret1::EvolutionRecord margaret1::System::evolve(margaret1::Evolution evolut
 
         // Solve all of the associated relations to update
         // other system properties
-        for (margaret1::Relation relation: evolution.associated) {
+        for (margaret1::Relation relation: orderedRelations) {
             solve(relation);
         }
 
