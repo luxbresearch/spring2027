@@ -189,6 +189,7 @@ void margaret1::System::solveAll(std::vector<margaret1::Relation> relations) {
 }
 
 margaret1::EvolutionRecord margaret1::System::evolve(margaret1::Evolution evolution, double evoStep, double evoTime, std::vector<std::string> record) {
+    std::cout << "[System] Starting system evolution ..." << std::endl << "\tSetting up ..."; std::cout.flush();
     int steps = (int)(evoTime / evoStep);
     std::vector<std::string> updateNames;
     std::vector<double> updateValues;
@@ -222,7 +223,10 @@ margaret1::EvolutionRecord margaret1::System::evolve(margaret1::Evolution evolut
         }
     }
 
+    std::cout << "done." << std::endl;
+
     for (int step = 0; step < steps; step++) {
+        std::cout << "\r\tEvolution step " << step+1 << "/" << steps << "\t(" << (step+1)*100/steps << "%)"; std::cout.flush();
         // Figure out the time derivatives as specified in
         // the evolution object, and add the dx/dt dt 
         // elements to their respective properties.
@@ -246,6 +250,7 @@ margaret1::EvolutionRecord margaret1::System::evolve(margaret1::Evolution evolut
             solve(relation);
         }
 
+        currentTime += evoStep;
         if (record.size() != 0) {
             // Record the values of the specified variables at this juncture
             evoRecord.timeDomain.push_back(currentTime);
@@ -254,6 +259,8 @@ margaret1::EvolutionRecord margaret1::System::evolve(margaret1::Evolution evolut
             }
         }
     }
+
+    std::cout << std::endl << "[System] System evolution complete." << std::endl;
 
     return evoRecord; // Return the record generated whether or not it actually has data
 }

@@ -103,10 +103,6 @@ namespace margaret1 {
                 Relation(name, solves, relation, requires), order(order) {}
 
             int order;
-            std::string name;
-            std::function<double(System*)> relation;
-            std::string solves;
-            std::vector<std::string> requires;
 
     };
 
