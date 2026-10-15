@@ -210,7 +210,10 @@ bool margaret1::System::isSolvable(margaret1::Relation* relation) {
 }
 
 void margaret1::System::solve(margaret1::Relation relation) {
-    setVal(relation.solves, relation.relation(this));
+    std::cout << "\t\tEvaluating ..." << std::endl;
+    double val = relation.relation(this);
+    std::cout << "\t\tDone." << std::endl;
+    setVal(relation.solves, val);
 }
 
 void margaret1::System::solveAll(std::vector<margaret1::Relation> relations) {
@@ -222,9 +225,12 @@ void margaret1::System::solveAll(std::vector<margaret1::Relation> relations) {
 
         for (margaret1::Relation relation: relations) {
             if (isSolvable(&relation)) {
-                for (std::string name: alreadySolved) if (relation.name == name) {isAlreadySolved = true; break; }
+                for (std::string name: alreadySolved) if (relation.name == name) { isAlreadySolved = true; break; }
                 if (isAlreadySolved) continue;
 
+                std::cout << "\tSolvable relation: " << relation.name << "\t(requires ";
+                for (std::string r: relation.requires) std::cout << r << ", ";
+                std::cout << "solves for " << relation.solves << ")" << std::endl;
                 solve(relation);
                 alreadySolved.push_back(relation.name);
                 solveCount++;
