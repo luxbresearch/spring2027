@@ -51,13 +51,9 @@ margaret1::Relation margaret1::MultLaw::deriveRelationFor(std::string prop) {
     double k = exponent(prop);
     std::function<double(System*)> relation = [this, prop, k](System* sysptr) {
         double y = 1.0;
-        std::cout << "\t\tLDR evaluation: do not multiply by " << prop << std::endl;
         for (std::pair<std::string, double> pair: this->pairs) {
             if (pair.first != prop) {
-                std::cout << "\t\tLDR evaluation: multiplied " << pair.first << std::endl;
                 y *= std::pow(sysptr->getVal(pair.first), pair.second);
-            } else {
-                std::cout << "\t\tLDR evaluation: skipped " << pair.first << std::endl;
             }
         }
         return pow(y, -1/k);
