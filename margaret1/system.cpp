@@ -301,10 +301,11 @@ margaret1::EvolutionRecord margaret1::System::evolve(margaret1::Evolution evolut
         }
     }
 
-    for (margaret1::Relation relation: orderedRelations) {
-        if (!isSolvable(&relation)) margaret1::margaretError("a margaret1 System", "Cannot solve associated evolution relation", "Set its required properties before evolution.");
-        solve(relation);
-    }
+    // for (margaret1::Relation relation: orderedRelations) {
+    //     if (!isSolvable(&relation)) margaret1::margaretError("a margaret1 System", "Cannot solve associated evolution relation", "Set its required properties before evolution.");
+    //     solve(relation);
+    // }
+    solveAll(orderedRelations);
 
     if (record.size() != 0) {
         // Setup: get all the recording variables' names and series in place
