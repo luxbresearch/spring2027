@@ -5,8 +5,20 @@
 using namespace std;
 using namespace margaret1;
 
+// In this example we define a law relating a, b, c, and d:
+//
+//      a * b * d^2 / c = 1.
+//
+// Test with a=1, b=2, c=3; we have
+//
+//      1 * 2 * d^2 / 3 = 1;
+//
+//      d^2 = 3/2;
+//
+//      d = sqrt(3/2) = 1.22474487139.
+
 Property a({"a"}), b({"b"}), c({"c"}), d({"d"});
-Law law("l", {{"a", 1}, {"b", 1}, {"c", -1}, {"d", 2}});
+MultLaw law("l", {{"a", 1}, {"b", 1}, {"c", -1}, {"d", 2}});
 vector<Relation> rels = law.deriveAllRelations();
 System sys({a, b, c, d});
 

@@ -69,6 +69,7 @@ namespace margaret1 {
 
         public:
 
+            Relation() {}
             Relation(std::string name, std::string solves, std::function<double(System*)> relation, std::vector<std::string> requires): name(name), solves(solves), relation(relation), requires(requires) {}
 
             std::string name;
