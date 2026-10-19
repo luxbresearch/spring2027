@@ -92,6 +92,7 @@ namespace margaret1 {
             std::vector<std::string> requires;
 
             double suppose(std::vector<std::pair<std::string, double>> values);   // run a calculation using given values
+            
             std::pair<double, double> invertRLE(std::string input, double output, 
                 std::vector<std::pair<std::string, double>> knownValues, 
                 double dmin, double dmax, double precision);

@@ -20,6 +20,8 @@
 #include <fstream>
 #include <iomanip>
 #include <tuple>
+#include <chrono>
+#include <thread>
 
 // --- Implementation for margaret1::Property class --- //
 //
@@ -121,10 +123,10 @@ std::pair<double, double> margaret1::Relation::invertRLE(
         test->setVal(input, currentInput);
         test->solve(*this);
         currentOutput = test->getVal(solves);
-
         // Compute the error from the target value and possibly
         // update the least-error input
         error = std::abs(currentOutput - output);
+
         if (error < leastError) {
             leastError = error;
             leastErrorInput = currentInput;
@@ -446,9 +448,7 @@ bool margaret1::System::isSolvable(margaret1::Relation* relation) {
 }
 
 void margaret1::System::solve(margaret1::Relation relation) {
-    std::cout << "\t\tEvaluating ..." << std::endl;
     double val = relation.relation(this);
-    std::cout << "\t\tDone." << std::endl;
     setVal(relation.solves, val);
 }
 
