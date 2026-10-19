@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <fstream>
 #include <iomanip>
+#include <tuple>
 
 // --- Implementation for margaret1::Property class --- //
 //
@@ -56,7 +57,12 @@ bool margaret1::Property::hasName(std::string name) {
 // --- Implementation for margaret1::Relation class --- //
 //
 // Methods:
-//      double suppose(std::vector<std::pair<std::string, double>> values)  (written)
+//      double suppose(std::vector<std::pair<std::string, double>> values)  (tested)
+//      std::pair<double, double> invert_rangeLE(
+//          std::string for, double output,
+//          std::vector<std::pair<std::string, double>> knownValues, 
+//          double dmin, double dmax, double precision)                     (write!)
+
 
 double margaret1::Relation::suppose(std::vector<std::pair<std::string, double>> values) {
     std::vector<margaret1::Property> props;
@@ -72,6 +78,222 @@ double margaret1::Relation::suppose(std::vector<std::pair<std::string, double>> 
     return test->getVal(solves);
 }
 
+// invertRLE: Sweep a range for a value for a particular
+// variable which produces the least error for a target output
+// and return that target value and the associated error.
+//
+// That is, find the value x_0 in the given domain for the input
+// which best approximates the solution to f(x)=y for the given
+// output y and the Relation f(x).
+std::pair<double, double> margaret1::Relation::invertRLE(
+        std::string input, double output, 
+        std::vector<std::pair<std::string, double>> knownValues, 
+        double dmin, double dmax, double precision) {
+
+    std::vector<margaret1::Property> props;
+    
+    // Init other constant properties
+    margaret1::Property prop;
+    for (std::pair<std::string, double> p: knownValues) {
+        prop = margaret1::Property({p.first});
+        prop.setVal(p.second);
+        props.push_back(prop);
+    }
+
+    // Init output property 
+    margaret1::Property solvesProperty({solves});
+    solvesProperty.setVal(output);
+    props.push_back(solvesProperty);
+
+    // Init input property
+    margaret1::Property inputProperty({input});
+    props.push_back(inputProperty);
+
+    // Init system
+    System* test = new System(props);
+
+    // Sweep through the target domain
+    double currentInput, currentOutput, error;
+    double leastErrorInput = -dmin, leastError = 999999;
+    for (currentInput = dmin; currentInput <= dmax; currentInput += precision) {
+        // Set the inverted property to the current value and
+        // solve what the output property is under those conditions
+        test->setVal(input, currentInput);
+        test->solve(*this);
+        currentOutput = test->getVal(solves);
+
+        // Compute the error from the target value and possibly
+        // update the least-error input
+        error = std::abs(currentOutput - output);
+        if (error < leastError) {
+            leastError = error;
+            leastErrorInput = currentInput;
+        }
+    }
+
+    // The least-error input is as close as we got so that's
+    // good enough
+    return std::pair<double, double>(leastErrorInput, leastError);
+}
+
+// invertREM: Sweep a range for values of a particular
+// variable which produces error margins against a known
+// output which are satisfactory to some degree, and
+// return each value and its error margin.
+// 
+// That is, find values x_0 in the given domain for the input
+// which are good approximations to the solution to f(x)=y
+// for the given output y and the Relation f(x).
+std::vector<std::pair<double, double>> margaret1::Relation::invertREM(
+        std::string input, double output, 
+        std::vector<std::pair<std::string, double>> knownValues, 
+        double dmin, double dmax, double precision, double tolerableError) {
+
+    std::vector<margaret1::Property> props;
+    
+    // Init other constant properties
+    margaret1::Property prop;
+    for (std::pair<std::string, double> p: knownValues) {
+        prop = margaret1::Property({p.first});
+        prop.setVal(p.second);
+        props.push_back(prop);
+    }
+
+    // Init output property 
+    margaret1::Property solvesProperty({solves});
+    solvesProperty.setVal(output);
+    props.push_back(solvesProperty);
+
+    // Init input property
+    margaret1::Property inputProperty({input});
+    props.push_back(inputProperty);
+
+    // Init system
+    System* test = new System(props);
+
+    // Sweep through the target domain
+    double currentInput, currentOutput, error;
+    std::vector<std::pair<double, double>> result;
+    for (currentInput = dmin; currentInput <= dmax; currentInput += precision) {
+        // Set the inverted property to the current value and
+        // solve what the output property is under those conditions
+        test->setVal(input, currentInput);
+        test->solve(*this);
+        currentOutput = test->getVal(solves);
+
+        // Compute the error from the target value and possibly
+        // update the least-error input
+        error = std::abs(currentOutput - output);
+        if (error < tolerableError) result.push_back(std::pair(currentInput, error));
+    }
+
+    return result;
+}
+
+// invertREMHD: Essentially, produce points in the given 
+// domain that are very close to the level set f(x)=y.
+//
+// Since we already have one function that'll do this in
+// one dimension, we can actually use it as a base case
+// for this function and then have this one be recursive,
+// taking each n-dimensional problem and reducing it to
+// an (n-1)-dimensional problem until eventually we get
+// to the 1-dimensional problem, and then solving that with
+// invertREM and concatenating the results together.
+
+std::vector<std::pair<std::vector<double>, double>> margaret1::Relation::invertREMHD(
+        double output,
+        std::vector<std::pair<std::string, double>> knownValues,
+        std::vector<std::tuple<std::string, double, double>> targetDomains,
+        double precision, double tolerableError) {
+    
+    std::vector<std::pair<std::vector<double>, double>> results;
+
+    if (targetDomains.size() == 1) {
+
+        // In the one-dimensional case, get the results
+        // for the equivalently-stated one-dimensional
+        // probem
+
+        std::string input = std::get<0>(targetDomains[0]);
+        double dmin = std::get<1>(targetDomains[0]);
+        double dmax = std::get<2>(targetDomains[0]);
+        std::vector<std::pair<double, double>> results1d = invertREM(
+            input, output, knownValues,
+            dmin, dmax, precision, tolerableError
+        );
+
+        // Properly format the results
+        //
+        // Essentially, the results from invertREM (the
+        // one-dimensional base case of this function)
+        // output the results as individual doubles,
+        // instead of as vectors of doubles. Just fix
+        // that by going through and appending a vector
+        // containing just the output double for every
+        // output produced by invertREM.
+        for (std::pair<double, double> p: results1d) results.push_back(std::pair<std::vector<double>, double>({p.first}, p.second));
+
+        // Output them
+        return results;
+
+    } else if (targetDomains.size() > 1) {
+
+        // In the n-dimensional case, sweep through a
+        // range of values for the FIRST of the variables
+        // still unknown and for each such case get the
+        // set of solutions to the (n-1)-dimensional case
+        // and add them to the results.
+
+        std::tuple<std::string, double, double> sweepingDomainData = targetDomains[0];
+        std::string domainToSweep = std::get<0>(sweepingDomainData);
+        double dmin = std::get<1>(sweepingDomainData);
+        double dmax = std::get<2>(sweepingDomainData);
+
+        std::vector<std::pair<std::string, double>> newKnownsBase = knownValues;
+        std::vector<std::pair<std::string, double>> newKnowns;
+
+        std::vector<std::tuple<std::string, double, double>> newTargetDomains = targetDomains;
+        newTargetDomains.erase(newTargetDomains.begin()); // drop the first one, we're sweeping it
+
+        std::vector<std::pair<std::vector<double>, double>> sectionResults;
+        std::vector<double> sectionVector; double sectionError;
+        std::vector<double> newPositionVector;
+
+        double currentInput, currentOutput, error;
+        for (currentInput = dmin; currentInput <= dmax; currentInput += precision) {
+            // Set up the new knowns to have the first of 
+            // the variables (domainToSweep) set to the
+            // particular value
+            newKnowns = newKnownsBase;
+            newKnowns.push_back({domainToSweep, currentInput});
+
+            // Recurse to get the data for this section, with
+            // the 
+            sectionResults = invertREMHD(output, newKnowns, newTargetDomains, precision, tolerableError);
+
+            // Copy the data to results correctly formatted
+            // (all these data happened with domainToSweep=currentInput,
+            // so add that piece of information)
+            for (std::pair<std::vector<double>, double> p: sectionResults) {
+                sectionVector = p.first; sectionError = p.second;
+                newPositionVector = {currentInput};
+                for (int i = 0; i < sectionVector.size(); i++) newPositionVector.push_back(sectionVector[i]);
+                results.push_back({newPositionVector, sectionError});
+            }
+        }
+
+        // Return the stack of results
+        return results;
+
+    } else {
+        margaret1::margaretError("a margaret1 Relation", "Invalid number of target domains in invertREMHD.", "Pass a nonzero number of target domains to this function.");
+    }
+
+    return {};
+}
+
+
 // --- Implementation for margaret1::EvolutionRecord class --- //
 //
 // Methods:
@@ -81,8 +303,8 @@ double margaret1::Relation::suppose(std::vector<std::pair<std::string, double>> 
 //      double deriv(std::string name, double time);                (tested)
 //      double deriv2(std::string name, double time);               (tested)
 //      double getVal(std::string name, double time);               (tested)
-//      void exportCSV(std::string filename)                        (write!)
-//      void exportPRN(std::string filename)                        (write!)
+//      void exportCSV(std::string filename)                        (tested)
+//      void exportPRN(std::string filename)                        (tested)
 
 std::vector<double> margaret1::EvolutionRecord::series(std::string name) {
     for (int index = 0; index < variableNames.size(); index++) if (variableNames[index] == name) return variableSeries[index];

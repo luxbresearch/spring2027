@@ -94,6 +94,7 @@ namespace margaret1 {
             MultLaw(std::string name, std::vector<std::pair<std::string, double>> pairs): Law(name, pairs) {}
 
             double exponent(std::string prop);              // map to getFactor
+
             Relation deriveRelationFor(std::string prop) override;
 
     };
@@ -124,6 +125,19 @@ namespace margaret1 {
             double exponent(std::string prop);
             double coefficient(std::string prop);
             Relation deriveRelationFor(std::string prop) override;
+
+    };
+
+    class LawSet {
+
+        public:
+
+            LawSet() {}
+            LawSet(std::vector<Law*> laws): laws(laws) {}
+
+            std::vector<Law*> laws;
+
+            std::vector<Relation> deriveAllRelations();
 
     };
 

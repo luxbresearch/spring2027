@@ -92,6 +92,20 @@ namespace margaret1 {
             std::vector<std::string> requires;
 
             double suppose(std::vector<std::pair<std::string, double>> values);   // run a calculation using given values
+            std::pair<double, double> invertRLE(std::string input, double output, 
+                std::vector<std::pair<std::string, double>> knownValues, 
+                double dmin, double dmax, double precision);
+
+            std::vector<std::pair<double, double>> invertREM(
+                std::string input, double output, 
+                std::vector<std::pair<std::string, double>> knownValues, 
+                double dmin, double dmax, double precision, double tolerableError);
+
+            std::vector<std::pair<std::vector<double>, double>> invertREMHD(
+                double output,
+                std::vector<std::pair<std::string, double>> knownValues,
+                std::vector<std::tuple<std::string, double, double>> targetDomains,
+                double precision, double tolerableError);
 
     };
 
