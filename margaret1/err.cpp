@@ -23,3 +23,15 @@ void margaret1::margaretError(std::string source, std::string message, std::stri
     std::cout << "[!!!] Program cannot progress :(" << std::endl;
     throw std::runtime_error("Unrecoverable Margaret error");
 }
+
+void margaret1::margaretData(std::string desc, std::vector<double> values) {
+    const int dataOffsetTabs = 5;
+    int len = desc.size() + 6;
+    int tabwidth = len / 8;
+    std::cout << "[ + ] " << desc;
+    for (int i = 0; i < dataOffsetTabs-tabwidth; i++) std::cout << "\t";
+    for (double x: values) {
+        std::cout << x << "\t";
+    }
+    std::cout << std::endl;
+}
