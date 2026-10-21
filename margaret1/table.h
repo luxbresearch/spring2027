@@ -73,6 +73,12 @@ namespace margaret1 {
             void addCol(DataColumn col);
             void removeCol(std::string name);
 
+            static DataTable fromCSV(std::string filename, std::vector<std::string> names, int dmin=0, int dmax=-1);
+            void exportCSV(std::string filename);
+            static DataTable fromPRN(std::string filename, std::vector<std::string> names, int dmin=0, int dmax=-1);
+            void exportPRN(std::string filename);
+            static DataTable fromRelations(std::vector<Relation> relations, std::vector<std::tuple<std::string, double, double>> targetDomains, double precision=0.01);
+
     };
 
 };

@@ -14,6 +14,7 @@
 
 #include "table.h"
 #include "system.h"
+#include <sstream>
 
 // Implementation for DataColumn
 //
@@ -160,4 +161,203 @@ void margaret1::DataTable::removeCol(std::string name) {
             break;
         }
     }
+}
+
+margaret1::DataTable margaret1::DataTable::fromCSV(std::string filename, std::vector<std::string> names, int dmin, int dmax) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        margaret1::margaretError("a margaret1 DataTable", "Could not open CSV file: " + filename, "Check the file path and ensure it exists.");
+    }
+
+    std::vector<std::vector<double>> rows;
+    std::string line;
+    while (std::getline(file, line)) {
+        if (line.empty()) continue;
+
+        std::vector<double> row;
+        size_t start = 0;
+        while (true) {
+            size_t comma = line.find(',', start);
+            std::string field = line.substr(start, comma == std::string::npos ? comma : comma - start);
+            size_t parsed = 0;
+            double value;
+            try {
+                value = std::stod(field, &parsed);
+            } catch (...) {
+                margaret1::margaretError("a margaret1 DataTable", "Invalid numeric value in CSV file: " + field, "Ensure the CSV contains numeric values.");
+                return margaret1::DataTable();
+            }
+            if (field.find_first_not_of(" \t\r\n", parsed) != std::string::npos) {
+                margaret1::margaretError("a margaret1 DataTable", "Invalid numeric value in CSV file: " + field, "Ensure the CSV contains numeric values.");
+            }
+            row.push_back(value);
+            if (comma == std::string::npos) break;
+            start = comma + 1;
+        }
+        if (row.size() != names.size()) {
+            margaret1::margaretError("a margaret1 DataTable", "CSV column count does not match the supplied names", "Provide one name for each CSV column.");
+        }
+        rows.push_back(row);
+    }
+
+    if (rows.empty()) {
+        margaret1::DataTable table;
+        for (const std::string& name : names) {
+            margaret1::DataColumn column;
+            column.names.push_back(name);
+            table.addCol(column);
+        }
+        return table;
+    }
+
+    if (dmax == -1) dmax = static_cast<int>(rows.size()) - 1;
+    if (dmin < 0 || dmin >= static_cast<int>(rows.size()) || dmax < dmin || dmax >= static_cast<int>(rows.size())) {
+        margaret1::margaretError("a margaret1 DataTable", "CSV row range out of range", "Use valid zero-based row indices for dmin and dmax.");
+    }
+
+    margaret1::DataTable table;
+    for (size_t columnIndex = 0; columnIndex < names.size(); ++columnIndex) {
+        margaret1::DataColumn column;
+        column.names.push_back(names[columnIndex]);
+        for (int rowIndex = dmin; rowIndex <= dmax; ++rowIndex) {
+            column.data.push_back(rows[rowIndex][columnIndex]);
+        }
+        table.addCol(column);
+    }
+    return table;
+}
+
+void margaret1::DataTable::exportCSV(std::string filename) {
+    std::ofstream file(filename);
+    if (!file.is_open()) {
+        margaret1::margaretError("a margaret1 DataTable", "Could not open CSV file for writing: " + filename, "Check the file path and ensure it is writable.");
+    }
+
+    for (size_t i = 0; i < cols.size(); ++i) {
+        file << cols[i].names[0];
+        if (i < cols.size() - 1) file << ",";
+    }
+    file << "\n";
+
+    size_t numRows = cols.empty() ? 0 : cols[0].data.size();
+    for (size_t rowIndex = 0; rowIndex < numRows; ++rowIndex) {
+        for (size_t colIndex = 0; colIndex < cols.size(); ++colIndex) {
+            file << cols[colIndex].data[rowIndex];
+            if (colIndex < cols.size() - 1) file << ",";
+        }
+        file << "\n";
+    }
+    file.close();
+}
+
+margaret1::DataTable margaret1::DataTable::exportPRN(std::string filename, std::vector<std::string> names, int dmin, int dmax) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        margaret1::margaretError("a margaret1 DataTable", "Could not open PRN file: " + filename, "Check the file path and ensure it exists.");
+    }
+
+    std::vector<std::vector<double>> rows;
+    std::string line;
+    while (std::getline(file, line)) {
+        std::istringstream lineStream(line);
+        std::vector<double> row;
+        std::string field;
+        while (lineStream >> field) {
+            size_t parsed = 0;
+            double value;
+            try {
+                value = std::stod(field, &parsed);
+            } catch (...) {
+                margaret1::margaretError("a margaret1 DataTable", "Invalid numeric value in PRN file: " + field, "Ensure the PRN contains numeric values.");
+                return margaret1::DataTable();
+            }
+            if (parsed != field.size()) {
+                margaret1::margaretError("a margaret1 DataTable", "Invalid numeric value in PRN file: " + field, "Ensure the PRN contains numeric values.");
+            }
+            row.push_back(value);
+        }
+        if (row.empty()) continue;
+        if (row.size() != names.size()) {
+            margaret1::margaretError("a margaret1 DataTable", "PRN column count does not match the supplied names", "Provide one name for each PRN column.");
+        }
+        rows.push_back(row);
+    }
+
+    if (rows.empty()) {
+        margaret1::DataTable table;
+        for (const std::string& name : names) {
+            margaret1::DataColumn column;
+            column.names.push_back(name);
+            table.addCol(column);
+        }
+        return table;
+    }
+
+    if (dmax == -1) dmax = static_cast<int>(rows.size()) - 1;
+    if (dmin < 0 || dmin >= static_cast<int>(rows.size()) || dmax < dmin || dmax >= static_cast<int>(rows.size())) {
+        margaret1::margaretError("a margaret1 DataTable", "PRN row range out of range", "Use valid zero-based row indices for dmin and dmax.");
+    }
+
+    margaret1::DataTable table;
+    for (size_t columnIndex = 0; columnIndex < names.size(); ++columnIndex) {
+        margaret1::DataColumn column;
+        column.names.push_back(names[columnIndex]);
+        for (int rowIndex = dmin; rowIndex <= dmax; ++rowIndex) {
+            column.data.push_back(rows[rowIndex][columnIndex]);
+        }
+        table.addCol(column);
+    }
+    return table;
+
+}
+
+void margaret1::DataTable::exportPRN(std::string filename) {
+    std::ofstream file(filename);
+    if (!file.is_open()) {
+        margaret1::margaretError("a margaret1 DataTable", "Could not open PRN file for writing: " + filename, "Check the file path and ensure it is writable.");
+    }
+
+    size_t numRows = cols.empty() ? 0 : cols[0].data.size();
+    for (size_t rowIndex = 0; rowIndex < numRows; ++rowIndex) {
+        for (size_t colIndex = 0; colIndex < cols.size(); ++colIndex) {
+            file << cols[colIndex].data[rowIndex];
+            if (colIndex < cols.size() - 1) file << " ";
+        }
+        file << "\n";
+    }
+    file.close();
+}
+
+margaret1::DataTable margaret1::DataTable::fromRelations(std::vector<Relation> relations, std::vector<std::tuple<std::string, double, double>> targetDomains, double precision) {
+    margaret1::DataTable table;
+    for (const auto& [name, minVal, maxVal] : targetDomains) {
+        margaret1::DataColumn column;
+        column.names.push_back(name);
+        for (double val = minVal; val <= maxVal; val += precision) { // Example step size
+            column.data.push_back(val);
+        }
+        table.addCol(column);
+    }
+
+    // Use Relation::suppose to get the values for each row in
+    // the table
+    for (size_t rowIndex = 0; rowIndex < table.cols[0].data.size(); ++rowIndex) {
+        std::vector<std::pair<std::string, double>> knownValues;
+        for (const auto& col : table.cols) {
+            knownValues.push_back({col.names[0], col.data[rowIndex]});
+        }
+
+        for (const auto& relation : relations) {
+            double result = relation.suppose(knownValues);
+            // Find the corresponding column for the result
+            for (auto& col : table.cols) {
+                if (col.hasName(relation.solves)) {
+                    col.data[rowIndex] = result;
+                    break;
+                }
+            }
+        }
+    }
+
+    return table;
 }
