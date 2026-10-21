@@ -60,10 +60,11 @@ bool margaret1::Property::hasName(std::string name) {
 //
 // Methods:
 //      double suppose(std::vector<std::pair<std::string, double>> values)  (tested)
-//      std::pair<double, double> invert_rangeLE(
-//          std::string for, double output,
+//      std::pair<double, double> margaret1::Relation::invertRLE(
+//          std::string input, double output, 
 //          std::vector<std::pair<std::string, double>> knownValues, 
-//          double dmin, double dmax, double precision)                     (write!)
+//          double dmin, double dmax, double precision)                     (tested)
+//
 
 
 double margaret1::Relation::suppose(std::vector<std::pair<std::string, double>> values) {
@@ -271,7 +272,7 @@ std::vector<std::pair<std::vector<double>, double>> margaret1::Relation::invertR
             newKnowns.push_back({domainToSweep, currentInput});
 
             // Recurse to get the data for this section, with
-            // the 
+            // the first domain to sweep set to the currentInput
             sectionResults = invertREMHD(output, newKnowns, newTargetDomains, precision, tolerableError);
 
             // Copy the data to results correctly formatted
