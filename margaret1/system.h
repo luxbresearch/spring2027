@@ -272,6 +272,11 @@ namespace margaret1 {
                                                                                 // names with an interface in the console at
                                                                                 // run-time. 
 
+            System newWith(std::vector<std::pair<std::string, double>> newValues, std::vector<std::string> noLongerKnown);  
+                                                                                // return a new System with the same properties
+                                                                                // as this one, but with the given values set
+                                                                                // to the given values
+
     };
 
 }

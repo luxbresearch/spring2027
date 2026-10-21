@@ -647,3 +647,22 @@ void margaret1::System::setManual(std::vector<std::string> names) {
     }
     std::cout << "[System] Done; " << total << " new properties set (" << total << " total)." << std::endl;
 }
+
+margaret1::System margaret1::System::newWith(std::vector<std::pair<std::string, double>> newValues, std::vector<std::string> noLongerKnown) {
+    // Create a new system with the same properties as this one, but with the given new values set
+    std::vector<margaret1::Property> newProperties;
+    for (margaret1::Property prop: properties) {
+        margaret1::Property newProp = prop;
+        for (std::pair<std::string, double> p: newValues) {
+            if (newProp.hasName(p.first)) {
+                newProp.setVal(p.second);
+                break;
+            }
+        }
+        newProperties.push_back(newProp);
+    }   
+
+    margaret1::System result(newProperties);
+    for (std::string name: noLongerKnown) result.setUnknown(name);
+    return result;
+}
