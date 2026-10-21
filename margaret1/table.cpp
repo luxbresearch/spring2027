@@ -36,7 +36,7 @@ void margaret1::DataColumn::setVal(int index, double newVal) {
     data[index] = newVal;
 }
 
-int margaret1::DataColumn::closest(double target, int dmin, int dmax = -1) {
+int margaret1::DataColumn::closest(double target, int dmin, int dmax) {
     int minIndex, currentIndex;
     double minError = 999999, error;
 
@@ -56,7 +56,7 @@ int margaret1::DataColumn::closest(double target, int dmin, int dmax = -1) {
     return currentIndex;
 }
 
-std::vector<int> within(double target, double tolerableError, int dmin, int dmax=-1) {
+std::vector<int> margaret1::DataColumn::within(double target, double tolerableError, int dmin, int dmax) {
     int currentIndex;
     std::vector<int> results;
     double error;
@@ -74,7 +74,7 @@ std::vector<int> within(double target, double tolerableError, int dmin, int dmax
     return results;
 }
 
-margaret1::DataColumn margaret1::DataColumn::manipulate(double std::function<double(DataColumn*, int)> manip, int dmin, int dmax=-1) {
+margaret1::DataColumn margaret1::DataColumn::manipulate(std::function<double(DataColumn*, int)> manip, int dmin, int dmax) {
     int currentIndex;
     DataColumn newCol;
 
@@ -124,19 +124,19 @@ double margaret1::DataTable::getVal(std::string name, int index) {
     return getCol(name).getVal(index); 
 }
 
-int margaret1::DataTable::closest(std::string name, double target, int dmin, int dmax = -1) { 
+int margaret1::DataTable::closest(std::string name, double target, int dmin, int dmax) { 
     return getCol(name).closest(target, dmin, dmax); 
 }
 
-std::vector<int> margaret1::DataTable::within(std::string name, double target, double tolerableError, int dmin, int dmax=-1) { 
+std::vector<int> margaret1::DataTable::within(std::string name, double target, double tolerableError, int dmin, int dmax) { 
     return getCol(name).within(target, tolerableError, dmin, dmax); 
 }
 
-double margaret1::DataTable::getValWhereClosest(std::string nameToGet, std::string nameToSearch, double target, int dmin, int dmax=-1) {
+double margaret1::DataTable::getValWhereClosest(std::string nameToGet, std::string nameToSearch, double target, int dmin, int dmax) {
     return getVal(nameToGet, getCol(nameToSearch).closest(target, dmin, dmax));
 }
 
-std::vector<double> margaret1::DataTable::getValWhereWithin(std::string nameToGet, std::string nameToSearch, double target, double tolerableError, int dmin, int dmax=-1) {
+std::vector<double> margaret1::DataTable::getValWhereWithin(std::string nameToGet, std::string nameToSearch, double target, double tolerableError, int dmin, int dmax) {
     std::vector<int> indices = getCol(nameToSearch).within(target, tolerableError, dmin, dmax);
     std::vector<double> results;
     margaret1::DataColumn readCol = getCol(nameToGet);
@@ -144,8 +144,8 @@ std::vector<double> margaret1::DataTable::getValWhereWithin(std::string nameToGe
     return results;
 }
 
-void margaret1::DataTable::manipulate(std::string name, double std::function<double(DataColumn*, int)> manip, int dmin, int dmax=-1) {
-    margaret1::DataColumn col = getCol(nameToGet);
+void margaret1::DataTable::manipulate(std::string name, std::function<double(DataColumn*, int)> manip, int dmin, int dmax) {
+    margaret1::DataColumn col = getCol(name);
     removeCol(col.names[0]);
     addCol(col.manipulate(manip, dmin, dmax));
 }
@@ -250,7 +250,7 @@ void margaret1::DataTable::exportCSV(std::string filename) {
     file.close();
 }
 
-margaret1::DataTable margaret1::DataTable::exportPRN(std::string filename, std::vector<std::string> names, int dmin, int dmax) {
+margaret1::DataTable margaret1::DataTable::fromPRN(std::string filename, std::vector<std::string> names, int dmin, int dmax) {
     std::ifstream file(filename);
     if (!file.is_open()) {
         margaret1::margaretError("a margaret1 DataTable", "Could not open PRN file: " + filename, "Check the file path and ensure it exists.");
@@ -343,14 +343,14 @@ margaret1::DataTable margaret1::DataTable::fromRelations(std::vector<Relation> r
     // the table
     for (size_t rowIndex = 0; rowIndex < table.cols[0].data.size(); ++rowIndex) {
         std::vector<std::pair<std::string, double>> knownValues;
-        for (const auto& col : table.cols) {
+        for (auto col : table.cols) {
             knownValues.push_back({col.names[0], col.data[rowIndex]});
         }
 
-        for (const auto& relation : relations) {
+        for (auto relation: relations) {
             double result = relation.suppose(knownValues);
             // Find the corresponding column for the result
-            for (auto& col : table.cols) {
+            for (auto col : table.cols) {
                 if (col.hasName(relation.solves)) {
                     col.data[rowIndex] = result;
                     break;

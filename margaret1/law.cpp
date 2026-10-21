@@ -129,7 +129,7 @@ margaret1::Relation margaret1::PolyLaw::deriveRelationFor(std::string prop) {
     return margaret1::Relation(derivedName, solvesFor, relation, requires);
 }
 
-std::vector<margarat1::Relation> margaret1::LawSet::deriveAllRelations() {
+std::vector<margaret1::Relation> margaret1::LawSet::deriveAllRelations() {
     std::vector<margaret1::Relation> res;
     for (margaret1::Law* lawptr: laws) {
         std::vector<margaret1::Relation> lawRelations = lawptr->deriveAllRelations();

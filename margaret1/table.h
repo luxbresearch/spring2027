@@ -49,7 +49,7 @@ namespace margaret1 {
 
             int closest(double target, int dmin, int dmax = -1);
             std::vector<int> within(double target, double tolerableError, int dmin, int dmax=-1);
-            DataColumn manipulate(double std::function<double(DataColumn*, int)> manip, int dmin, int dmax=-1);
+            DataColumn manipulate(std::function<double(DataColumn*, int)> manip, int dmin, int dmax=-1);
             bool hasName(std::string name);
 
     };
@@ -69,7 +69,7 @@ namespace margaret1 {
             std::vector<int> within(std::string name, double target, double tolerableError, int dmin, int dmax=-1);
             double getValWhereClosest(std::string nameToGet, std::string nameToSearch, double target, int dmin, int dmax=-1);
             std::vector<double> getValWhereWithin(std::string nameToGet, std::string nameToSearch, double target, double tolerableError, int dmin, int dmax=-1);
-            void manipulate(std::string name, double std::function<double(DataColumn*, int)> manip, int dmin, int dmax=-1);
+            void manipulate(std::string name, std::function<double(DataColumn*, int)> manip, int dmin, int dmax=-1);
             void addCol(DataColumn col);
             void removeCol(std::string name);
 
@@ -80,5 +80,9 @@ namespace margaret1 {
             static DataTable fromRelations(std::vector<Relation> relations, std::vector<std::tuple<std::string, double, double>> targetDomains, double precision=0.01);
 
     };
+
+    void relationsToCSV(std::vector<Relation> relations, std::string filename, std::vector<std::tuple<std::string, double, double>> targetDomains, double precision=0.01) {
+        margaret1::DataTable::fromRelations(relations, targetDomains, precision).exportCSV(filename);
+    }   
 
 };
