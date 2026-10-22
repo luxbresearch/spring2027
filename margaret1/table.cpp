@@ -328,15 +328,23 @@ void margaret1::DataTable::exportPRN(std::string filename) {
     file.close();
 }
 
-margaret1::DataTable margaret1::DataTable::fromRelations(std::vector<Relation> relations, std::vector<std::tuple<std::string, double, double>> targetDomains, double precision) {
+margaret1::DataTable margaret1::DataTable::fromRelations(std::vector<Relation> relations, std::vector<std::pair<std::string, std::vector<double>>> knowns, std::vector<std::tuple<std::string, double, double>> targetDomains, double precision) {
     margaret1::DataTable table;
     for (const auto& [name, minVal, maxVal] : targetDomains) {
         margaret1::DataColumn column;
         column.names.push_back(name);
-        for (double val = minVal; val <= maxVal; val += precision) { // Example step size
-            column.data.push_back(val);
+        for (double val = minVal; val <= maxVal; val += precision) {
+            column.data.push_back(0);
         }
         table.addCol(column);
+    }
+
+    std::string name;
+    std::vector<double> data;
+    margaret1::DataColumn col;
+    for (std::pair<std::string, std::vector<double>> p: knowns) {
+        name = p.first; data = p.second; col = table.getCol(name);
+        for (int i = 0; i < data.size(); i++) col.setVal(i, data[i]);
     }
 
     // Use Relation::suppose to get the values for each row in
@@ -360,4 +368,8 @@ margaret1::DataTable margaret1::DataTable::fromRelations(std::vector<Relation> r
     }
 
     return table;
+}
+
+void margaret1::relationsToCSV(std::vector<Relation> relations, std::string filename, std::vector<std::pair<std::string, std::vector<double>>> knowns, std::vector<std::tuple<std::string, double, double>> targetDomains, double precision) {
+    margaret1::DataTable::fromRelations(relations, knowns, targetDomains, precision).exportCSV(filename);
 }
