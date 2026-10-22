@@ -25,7 +25,7 @@ void margaret1::margaretError(std::string source, std::string message, std::stri
 }
 
 void margaret1::margaretData(std::string desc, std::vector<double> values) {
-    const int dataOffsetTabs = 5;
+    const int dataOffsetTabs = 8;
     int len = desc.size() + 6;
     int tabwidth = len / 8;
     std::cout << "[ + ] " << desc;
